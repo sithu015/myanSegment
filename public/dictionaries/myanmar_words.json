@@ -1,0 +1,198 @@
+{
+  "version": "2.0",
+  "language": "my",
+  "name": "Myanmar Legal & Common Terms Dictionary",
+  "description": "Common Myanmar words and legal terminology for word segmentation",
+  "entries": [
+    {
+      "word": "နိုင်ငံတော်",
+      "segments": [
+        "နိုင်ငံ",
+        "တော်"
+      ],
+      "pos": "noun",
+      "frequency": 1000,
+      "notes": "State, Nation"
+    },
+    {
+      "word": "ဝန်ကြီးဌာန",
+      "segments": [
+        "ဝန်ကြီး",
+        "ဌာန"
+      ],
+      "pos": "noun",
+      "frequency": 800,
+      "notes": "Ministry"
+    },
+    {
+      "word": "ပြည်ထောင်စု",
+      "segments": [
+        "ပြည်ထောင်စု"
+      ],
+      "pos": "noun",
+      "frequency": 900,
+      "notes": "Union, Federation"
+    },
+    {
+      "word": "သမ္မတ",
+      "segments": [
+        "သမ္မတ"
+      ],
+      "pos": "noun",
+      "frequency": 950,
+      "notes": "President"
+    },
+    {
+      "word": "လွှတ်တော်",
+      "segments": [
+        "လွှတ်တော်"
+      ],
+      "pos": "noun",
+      "frequency": 850,
+      "notes": "Parliament"
+    },
+    {
+      "word": "အမျိုးသား",
+      "segments": [
+        "အမျိုးသား"
+      ],
+      "pos": "noun",
+      "frequency": 700,
+      "notes": "National, Citizen (male)"
+    },
+    {
+      "word": "နိုင်ငံသား",
+      "segments": [
+        "နိုင်ငံသား"
+      ],
+      "pos": "noun",
+      "frequency": 750,
+      "notes": "Citizen"
+    },
+    {
+      "word": "အခွင့်အရေး",
+      "segments": [
+        "အခွင့်",
+        "အရေး"
+      ],
+      "pos": "noun",
+      "frequency": 720,
+      "notes": "Rights"
+    },
+    {
+      "word": "ဥပဒေ",
+      "segments": [
+        "ဥပဒေ"
+      ],
+      "pos": "noun",
+      "frequency": 880,
+      "notes": "Law"
+    },
+    {
+      "word": "ဖွဲ့စည်းပုံ",
+      "segments": [
+        "ဖွဲ့စည်းပုံ"
+      ],
+      "pos": "noun",
+      "frequency": 650,
+      "notes": "Constitution, Structure"
+    },
+    {
+      "word": "အခြေခံဥပဒေ",
+      "segments": [
+        "အခြေခံ",
+        "ဥပဒေ"
+      ],
+      "pos": "noun",
+      "frequency": 600,
+      "notes": "Constitution (Basic Law)"
+    },
+    {
+      "word": "တရားစီရင်ရေး",
+      "segments": [
+        "တရား",
+        "စီရင်ရေး"
+      ],
+      "pos": "noun",
+      "frequency": 580,
+      "notes": "Judiciary"
+    },
+    {
+      "word": "တရားရုံး",
+      "segments": [
+        "တရား",
+        "ရုံး"
+      ],
+      "pos": "noun",
+      "frequency": 620,
+      "notes": "Court"
+    },
+    {
+      "word": "တရားသူကြီး",
+      "segments": [
+        "တရားသူကြီး"
+      ],
+      "pos": "noun",
+      "frequency": 550,
+      "notes": "Judge"
+    },
+    {
+      "word": "အစိုးရ",
+      "segments": [
+        "အစိုးရ"
+      ],
+      "pos": "noun",
+      "frequency": 920,
+      "notes": "Government"
+    },
+    {
+      "word": "ပြည်သူ",
+      "segments": [
+        "ပြည်သူ"
+      ],
+      "pos": "noun",
+      "frequency": 800,
+      "notes": "People, Citizens"
+    },
+    {
+      "word": "ရာထူး",
+      "segments": [
+        "ရာထူး"
+      ],
+      "pos": "noun",
+      "frequency": 500,
+      "notes": "Position, Post"
+    },
+    {
+      "word": "တာဝန်",
+      "segments": [
+        "တာဝန်"
+      ],
+      "pos": "noun",
+      "frequency": 680,
+      "notes": "Responsibility, Duty"
+    },
+    {
+      "word": "လုပ်ငန်း",
+      "segments": [
+        "လုပ်ငန်း"
+      ],
+      "pos": "noun",
+      "frequency": 750,
+      "notes": "Work, Business"
+    },
+    {
+      "word": "စီမံကိန်း",
+      "segments": [
+        "စီမံ",
+        "ကိန်း"
+      ],
+      "pos": "noun",
+      "frequency": 480,
+      "notes": "Plan, Project"
+    }
+  ],
+  "category": "legal",
+  "source": "custom",
+  "license": "CC0-1.0"
+}

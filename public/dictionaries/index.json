@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-02-10T13:31:47.237Z",
+  "totalEntries": 42445,
+  "dictionaries": [
+    {
+      "id": "general-myanmartools-myanmar-words",
+      "name": "Myanmar Words (POS Tagged)",
+      "nameMyanmar": "မြန်မာစကားလုံးများ (ဝါစင်္ဂ)",
+      "path": "myanmar_pos_words.json",
+      "category": "general",
+      "source": "myanmartools/myanmar-words",
+      "license": "MIT",
+      "entryCount": 27845,
+      "enabled": true
+    },
+    {
+      "id": "general-kanaung-wordlists",
+      "name": "Kanaung Wordlist",
+      "nameMyanmar": "ကနောင် စကားလုံးစာရင်း",
+      "path": "kanaung_wordlist.json",
+      "category": "general",
+      "source": "kanaung/wordlists",
+      "license": "Various",
+      "entryCount": 12467,
+      "enabled": true
+    },
+    {
+      "id": "phrases-chanmratekoko-wordlists",
+      "name": "Myanmar Conversation Phrases",
+      "nameMyanmar": "မြန်မာ စကားပုံများ",
+      "path": "conversation_phrases.json",
+      "category": "phrases",
+      "source": "chanmratekoko/wordlists",
+      "license": "Various",
+      "entryCount": 643,
+      "enabled": true
+    },
+    {
+      "id": "transliteration-chanmratekoko-wordlists",
+      "name": "Myanmar-English Transliteration",
+      "nameMyanmar": "မြန်မာ-အင်္ဂလိပ် အသံဖလှယ်",
+      "path": "transliteration.json",
+      "category": "transliteration",
+      "source": "chanmratekoko/wordlists",
+      "license": "Various",
+      "entryCount": 1470,
+      "enabled": true
+    },
+    {
+      "id": "legal-custom",
+      "name": "Myanmar Legal & Common Terms Dictionary",
+      "nameMyanmar": "",
+      "path": "myanmar_words.json",
+      "category": "legal",
+      "source": "custom",
+      "license": "CC0-1.0",
+      "entryCount": 20,
+      "enabled": true
+    }
+  ]
+}

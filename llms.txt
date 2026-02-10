@@ -1,0 +1,146 @@
+# Myan-Seg-Editor (Myanmar Word Segmentation Editor)
+
+> **Version**: v1.1.0 (Conflict Aware - Alpha)
+> **Project Type**: Myanmar NLP Tool - Word/Syllable Segmentation Editor
+> **Tech Stack**: Next.js, React, TypeScript, Tailwind CSS
+
+## Overview
+
+Myan-Seg-Editor is a specialized web-based visual editor for Myanmar language word and syllable segmentation. It provides an interactive interface for creating high-quality segmented datasets essential for Myanmar NLP tasks including tokenization, POS tagging, and machine translation.
+
+## Core Purpose
+
+The editor addresses the critical challenge in Myanmar NLP: the lack of clear word boundaries in Myanmar script. Unlike languages with explicit word separators (spaces), Myanmar text requires sophisticated segmentation to identify meaningful linguistic units (words and syllables) for downstream NLP processing.
+
+## Key Features
+
+### 1. **Visual Segment Editor**
+- Interactive box-based interface where each Myanmar syllable or word appears in a clickable segment
+- Real-time manual segmentation editing with keyboard shortcuts:
+  - `Space`: Split/cut segment at cursor position
+  - `Backspace`: Merge current segment with previous
+  - `Enter/F2`: Edit segment content directly
+  - `Arrow Keys`: Navigate between segments
+- Line-by-line organization with numbered rows for easy reference
+
+### 2. **Conflict Monitor (Quality Assurance)**
+- Automatic detection of segmentation inconsistencies across the document
+- Identifies when identical Myanmar text is segmented differently in different locations
+- Example: "ဆရာဝန်" appearing as merged in one place but split as "ဆရာ ဝန်" elsewhere
+- Real-time issue count display in the sidebar
+- Visual highlighting of conflicting segments
+
+### 3. **Conflict Resolution Tools**
+- **Merge All**: Globally merge all instances of a detected conflict
+- **Split All**: Globally split all instances at the same position
+- **Ignore**: Mark false positives or intentional variations
+- Ensures consistency across entire dataset with one-click actions
+
+### 4. **Project Statistics**
+- Real-time tracking of:
+  - Total line count
+  - Total segment count
+  - Conflict/issue count
+- Displayed in right sidebar for quick project status overview
+
+### 5. **Data Management**
+- **Share**: Export shareable link to current segmentation state
+- **Download**: Save segmented text in various formats
+- **Save**: Persist current work to local storage/backend
+- **Reset**: Clear current session and start fresh
+- **Import**: Load text files for segmentation
+
+### 6. **Advanced Editing**
+- **Split Mode** (Scissors icon): Batch splitting operations
+- **Analytics** (Waveform icon): Segmentation statistics and quality metrics
+- Visual feedback system with highlighted active lines (yellow/cream background)
+
+## Technical Architecture
+
+### Syllable Segmentation Algorithm
+The editor uses a **substitution-based regex approach** for automatic Myanmar syllable breaking:
+1. Unicode normalization and preprocessing
+2. Pattern matching for Myanmar syllable structures (consonant clusters, vowels, diacritics, tone marks)
+3. Substitution markers (U+FFFF) inserted at syllable boundaries
+4. Post-processing to create segmented output
+
+**Key algorithm file**: `sylbreak.ts` - Handles punctuation separation, consonant-vowel patterns, and edge cases
+
+### Data Format
+- **Input**: Plain Myanmar text or pre-segmented text
+- **Internal Representation**: Array of lines, each containing array of segments
+- **Output Formats**: 
+  - Space-separated text
+  - JSONL with line/segment metadata
+  - BIOES format for ML training
+  - CoNLL-U format for UD annotation
+
+### State Management
+- React contexts for:
+  - i18n (internationalization - English/Myanmar UI)
+  - Editor state (segments, cursor position, undo/redo)
+  - Conflict detection state
+- Local storage integration for draft persistence
+
+## Use Cases
+
+1. **Dataset Creation**: Generate high-quality word-segmented data for training Myanmar NLP models
+2. **Annotation Review**: Manual verification and correction of automatically segmented text
+3. **Consistency Checking**: Ensure uniform segmentation policies across large corpora
+4. **Legal/Formal Text Processing**: Special handling for legal documents, constitutions, official texts
+5. **Research**: Linguistic analysis of Myanmar word boundaries and segmentation patterns
+
+## Integration with Myanmar NLP Pipeline
+
+The editor is part of a larger Myanmar NLP ecosystem:
+- **Upstream**: Raw Myanmar text from PDFs, OCRs, web scraping
+- **Segmentation**: Myan-Seg-Editor (this tool)
+- **Downstream**: 
+  - POS tagging (Stanza models)
+  - UD parsing (Universal Dependencies)
+  - NER (Named Entity Recognition)
+  - Machine translation
+  - Sentiment analysis
+
+## Related Files and Components
+
+- `sylbreak.ts`: Core syllable breaking algorithm
+- `Editor.tsx`: Main editor component with keyboard handling
+- `ConflictMonitor.tsx`: Sidebar component for conflict detection/resolution
+- `i18nContext.tsx`: Internationalization (Myanmar/English)
+- Design specification documents (English and Myanmar versions)
+- Test files: `legal.txt`, `constitution_segmented_sentences.txt`
+
+## Development Status
+
+**Current Version**: v1.1.0 - Conflict Aware (Alpha)
+- ✅ Core editing functionality
+- ✅ Automatic conflict detection
+- ✅ Global resolution tools
+- ✅ Project statistics
+- ✅ Import/export capabilities
+- 🚧 Advanced analytics (in progress)
+- 🚧 Collaborative editing features (planned)
+- 🚧 ML-assisted segmentation suggestions (planned)
+
+## Known Challenges
+
+1. **Hydration Errors**: Resolved issues with localStorage SSR/CSR mismatch
+2. **Punctuation Handling**: Special logic for closing brackets and complex punctuation
+3. **Multi-segment Word Detection**: Conflict detection for 1-4 segment words
+4. **Performance**: Optimization needed for documents with 1000+ lines
+
+## Quality Metrics
+
+The conflict monitor serves as an automated quality control system, ensuring:
+- Segmentation policy consistency
+- Data quality for ML training
+- Reduced human annotation errors
+- Scalable corpus creation
+
+## Documentation
+
+- English guide: `/docs/USER_GUIDE_EN.md`
+- Myanmar guide: `/docs/USER_GUIDE_MM.md`
+- Design specifications with algorithm details
+- Test cases and validation procedures
