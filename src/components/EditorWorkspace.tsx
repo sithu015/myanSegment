@@ -9,6 +9,7 @@ import SegmentBlock from './SegmentBlock';
 import ContextMenu from './ContextMenu';
 import ConflictResolutionModal from './ConflictResolutionModal';
 import { segmentIntoSyllables } from '../lib/sylbreak';
+import { FileEdit, FolderOpen, Scissors, PenTool, X, Keyboard, AlertTriangle, CheckCircle, Circle } from 'lucide-react';
 
 export default function EditorWorkspace() {
     const {
@@ -192,7 +193,7 @@ export default function EditorWorkspace() {
             <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-slate-50 via-indigo-50/30 to-cyan-50/20 dark:from-slate-900 dark:via-indigo-950/20 dark:to-slate-900">
                 <div className="text-center p-10 max-w-md animate-fade-in">
                     <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                        <span className="text-4xl">📝</span>
+                        <FileEdit className="w-10 h-10 text-white" />
                     </div>
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">
                         {t('noContentYet')}
@@ -203,7 +204,7 @@ export default function EditorWorkspace() {
                         <ol className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
                             <li className="flex gap-3 items-start">
                                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold">1</span>
-                                <span>Click <strong className="text-indigo-600 dark:text-indigo-400">&quot;📂 {t('importText')}&quot;</strong></span>
+                                <span>Click <strong className="text-indigo-600 dark:text-indigo-400">&quot;<FolderOpen className="inline-block w-3.5 h-3.5 mr-1 align-sub" /> {t('importText')}&quot;</strong></span>
                             </li>
                             <li className="flex gap-3 items-start">
                                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold">2</span>
@@ -230,7 +231,7 @@ export default function EditorWorkspace() {
                     ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
                     : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
                     }`}>
-                    {mode === 'segmentation' ? '✂️' : '✏️'} {mode === 'segmentation' ? t('segmentationMode') : t('editMode')}
+                    {mode === 'segmentation' ? <Scissors className="w-3.5 h-3.5" /> : <PenTool className="w-3.5 h-3.5" />} {mode === 'segmentation' ? t('segmentationMode') : t('editMode')}
                 </span>
 
                 {showShortcuts ? (
@@ -261,7 +262,7 @@ export default function EditorWorkspace() {
                             className="ml-1.5 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
                             title="Hide shortcuts"
                         >
-                            ✕
+                            <X className="w-4 h-4" />
                         </button>
                     </div>
                 ) : (
@@ -270,7 +271,7 @@ export default function EditorWorkspace() {
                         className="hidden md:flex ml-auto p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors text-xs"
                         title="Show keyboard shortcuts"
                     >
-                        ⌨️
+                        <Keyboard className="w-4 h-4" />
                     </button>
                 )}
             </div>
@@ -308,7 +309,7 @@ export default function EditorWorkspace() {
                                             onClick={() => setActiveConflict(lineConflicts[0])}
                                             className="text-[10px] px-2 py-0.5 bg-amber-100/80 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-full hover:bg-amber-200/80 transition-colors"
                                         >
-                                            ⚠️ {lineConflicts.length}
+                                            <span className="flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> {lineConflicts.length}</span>
                                         </button>
                                     )}
                                     <button
@@ -318,7 +319,7 @@ export default function EditorWorkspace() {
                                             : 'text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
                                             }`}
                                     >
-                                        {line.status === 'reviewed' ? '✅' : '○'} {line.status === 'reviewed' ? t('reviewed') : t('pending')}
+                                        <span className="flex items-center gap-1">{line.status === 'reviewed' ? <CheckCircle className="w-3 h-3" /> : <Circle className="w-3 h-3" />} {line.status === 'reviewed' ? t('reviewed') : t('pending')}</span>
                                     </button>
                                 </div>
                             </div>

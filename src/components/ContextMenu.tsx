@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useI18n } from '../context/I18nContext';
+import { Book, Scissors, Link, Undo2, CheckCircle } from 'lucide-react';
 
 interface ContextMenuProps {
     x: number;
@@ -56,19 +57,19 @@ export default function ContextMenu({
 
     const menuItems = [
         {
-            icon: '📖',
+            icon: <Book className="w-4 h-4" />,
             label: t('addToDictionary'),
             action: onAddToDictionary,
             shortcut: 'Ctrl+D',
         },
         {
-            icon: '✂️',
+            icon: <Scissors className="w-4 h-4" />,
             label: t('splitHere'),
             action: onSplitHere,
             shortcut: 'Space',
         },
         {
-            icon: '🔗',
+            icon: <Link className="w-4 h-4" />,
             label: t('mergeWithPrev'),
             action: canMerge ? onMergeWithPrev : undefined,
             shortcut: 'Backspace',
@@ -76,7 +77,7 @@ export default function ContextMenu({
         },
         { divider: true },
         {
-            icon: isReviewed ? '↩️' : '✅',
+            icon: isReviewed ? <Undo2 className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />,
             label: isReviewed ? 'Unmark Reviewed' : t('markReviewed'),
             action: onMarkReviewed,
         },
@@ -89,7 +90,7 @@ export default function ContextMenu({
                     if ('divider' in item && item.divider) {
                         return <div key={idx} className="border-t border-gray-200 dark:border-gray-700 my-1" />;
                     }
-                    const menuItem = item as { icon: string; label: string; action?: () => void; shortcut?: string; disabled?: boolean };
+                    const menuItem = item as { icon: React.ReactNode; label: string; action?: () => void; shortcut?: string; disabled?: boolean };
                     return (
                         <button
                             key={idx}
@@ -101,8 +102,8 @@ export default function ContextMenu({
                             }}
                             disabled={menuItem.disabled}
                             className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between gap-2 transition-colors ${menuItem.disabled
-                                    ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
-                                    : 'text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30'
+                                ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                                : 'text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30'
                                 }`}
                         >
                             <span className="flex items-center gap-2">

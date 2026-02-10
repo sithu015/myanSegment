@@ -5,6 +5,7 @@ import { useI18n } from '../context/I18nContext';
 import { useConflicts } from '../context/ConflictContext';
 import { useEditor } from '../context/EditorContext';
 import { ConflictInfo, ConflictResolution } from '../types';
+import { AlertTriangle, FileText, CheckCircle, AlertCircle, Ban } from 'lucide-react';
 
 interface ConflictResolutionModalProps {
     conflict: ConflictInfo;
@@ -43,7 +44,7 @@ export default function ConflictResolutionModal({ conflict, onClose }: ConflictR
                 {/* Header */}
                 <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-4 rounded-t-2xl">
                     <h2 className="text-lg font-bold flex items-center gap-2">
-                        ⚠️ {t('conflictDetected')}
+                        <AlertTriangle className="w-5 h-5 text-white" /> {t('conflictDetected')}
                     </h2>
                     <p className="text-sm mt-1 text-amber-100">
                         &quot;{conflict.word}&quot; {t('conflictWarning')}
@@ -54,12 +55,12 @@ export default function ConflictResolutionModal({ conflict, onClose }: ConflictR
                 <div className="p-6 space-y-4">
                     {/* Instruction Banner */}
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
-                        <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
+                        <div className="text-sm text-blue-800 dark:text-blue-200 font-medium">
                             {selectedForm === 'formA'
-                                ? '📝 Form A will replace all Form B instances'
-                                : '📝 Form B will replace all Form A instances'
+                                ? <span className="flex items-center gap-1"><FileText className="w-4 h-4 inline" /> Form A will replace all Form B instances</span>
+                                : <span className="flex items-center gap-1"><FileText className="w-4 h-4 inline" /> Form B will replace all Form A instances</span>
                             }
-                        </p>
+                        </div>
                         <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
                             {selectedForm === 'formA'
                                 ? `${conflict.locationsB.length} instance${conflict.locationsB.length !== 1 ? 's' : ''} will be changed to Form A`
@@ -69,8 +70,8 @@ export default function ConflictResolutionModal({ conflict, onClose }: ConflictR
                     </div>
                     {/* Form A */}
                     <div className={`border rounded-xl p-4 transition-all ${selectedForm === 'formA'
-                            ? 'border-green-500 dark:border-green-400 ring-2 ring-green-200 dark:ring-green-700/50 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20'
-                            : 'border-blue-200 dark:border-blue-700 bg-blue-50/30 dark:bg-blue-900/10 opacity-75'
+                        ? 'border-green-500 dark:border-green-400 ring-2 ring-green-200 dark:ring-green-700/50 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20'
+                        : 'border-blue-200 dark:border-blue-700 bg-blue-50/30 dark:bg-blue-900/10 opacity-75'
                         }`}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-3">
@@ -132,8 +133,8 @@ export default function ConflictResolutionModal({ conflict, onClose }: ConflictR
 
                     {/* Form B */}
                     <div className={`border rounded-xl p-4 transition-all ${selectedForm === 'formB'
-                            ? 'border-green-500 dark:border-green-400 ring-2 ring-green-200 dark:ring-green-700/50 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20'
-                            : 'border-purple-200 dark:border-purple-700 bg-purple-50/30 dark:bg-purple-900/10 opacity-75'
+                        ? 'border-green-500 dark:border-green-400 ring-2 ring-green-200 dark:ring-green-700/50 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20'
+                        : 'border-purple-200 dark:border-purple-700 bg-purple-50/30 dark:bg-purple-900/10 opacity-75'
                         }`}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-3">
@@ -201,7 +202,7 @@ export default function ConflictResolutionModal({ conflict, onClose }: ConflictR
                         className="w-full py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-600 transition-all shadow-md hover:shadow-lg"
                     >
                         <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-2">✅ {t('fixAll')}</span>
+                            <span className="flex items-center gap-2"><CheckCircle className="w-5 h-5" /> {t('fixAll')}</span>
                             <span className="text-xs bg-green-600 px-2 py-1 rounded-full">
                                 {selectedForm === 'formA'
                                     ? `Apply A → Replace ${conflict.locationsB.length} instance${conflict.locationsB.length !== 1 ? 's' : ''}`
@@ -215,7 +216,7 @@ export default function ConflictResolutionModal({ conflict, onClose }: ConflictR
                         onClick={() => handleResolve('exception')}
                         className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-xl font-medium hover:from-amber-600 hover:to-yellow-600 transition-all shadow-md hover:shadow-lg flex items-center justify-between"
                     >
-                        <span className="flex items-center gap-2">🔀 {t('exception')}</span>
+                        <span className="flex items-center gap-2"><AlertCircle className="w-5 h-5" /> {t('exception')}</span>
                         <span className="text-xs text-amber-100">{t('exceptionDesc')}</span>
                     </button>
 
@@ -223,7 +224,7 @@ export default function ConflictResolutionModal({ conflict, onClose }: ConflictR
                         onClick={() => handleResolve('ignore')}
                         className="w-full py-3 px-4 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-all flex items-center justify-between"
                     >
-                        <span className="flex items-center gap-2">🚫 {t('ignoreConflict')}</span>
+                        <span className="flex items-center gap-2"><Ban className="w-5 h-5" /> {t('ignoreConflict')}</span>
                         <span className="text-xs text-gray-500 dark:text-gray-400">{t('ignoreConflictDesc')}</span>
                     </button>
                 </div>
