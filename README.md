@@ -148,4 +148,29 @@ For issues, questions, or feature requests:
 
 ---
 
+## 📜 References & Credits | ရည်ညွှန်းချက်များနှင့် အသိအမှတ်ပြုမှုများ
+
+We gratefully acknowledge the following open-source projects and resources that made this tool possible:
+
+### Core Algorithms | အဓိက အယ်လဂိုရီသမ်များ
+- **Sylbreak (Syllable Segmentation)**:
+    - Original implementation by **Ye Kyaw Thu**
+    - Source: [sylbreak](https://github.com/ye-kyaw-thu/sylbreak)
+    - Ported from [myWord](https://github.com/sithu015/myWord) (syl_segment.py)
+
+### Dictionaries & Data | အဘိဓာန်များနှင့် ဒေတာများ
+- **Kanaung Project**:
+    - Word lists sourced from the **Kanaung** open-source NLP project
+    - Used for the primary word segmentation dictionary
+- **Myanmar Legal & Common Terms**:
+    - Custom-curated dictionary for legal domain support
+- **Myanmar POS Words**:
+    - Part-of-Speech tagged word lists for grammatical consistency
+
+### Inspiration | စိတ်ကူးစိတ်သန်း
+- **myWord**: Comprehensive Myanmar NLP toolkit that served as a reference for segmentation logic.
+
+
+---
+
 **Happy Annotating! | မှတ်သားခြင်း ပျော်ရွှင်ပါစေ! 🎉**
