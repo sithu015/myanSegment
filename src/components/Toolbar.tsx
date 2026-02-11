@@ -10,41 +10,57 @@ import { cleanText, normalizeSpaces } from '../lib/sylbreak';
 import DictImportConflictModal from './DictImportConflictModal';
 import { ImportConflict } from '../utils/dictionaryService';
 import { LoadedDictionary } from '../types/dictionary';
-import { FileEdit, Sun, Moon, Languages, FolderOpen, Download, Save, Trash2, Undo2, Redo2, Eraser, Ruler, FileText, ScrollText, Palette, BookOpen, Book, FileJson, FileSpreadsheet, ChevronDown } from 'lucide-react';
+import {
+    FileEdit, Sun, Moon, Languages, FolderOpen, Download, Save,
+    Trash2, Undo2, Redo2, Eraser, Ruler, FileText, ScrollText,
+    Palette, BookOpen, Book, ChevronDown, PanelRightOpen,
+    PanelRightClose, HelpCircle, File, Eye
+} from 'lucide-react';
 
-export default function Toolbar() {
+interface ToolbarProps {
+    toggleSidebar: () => void;
+    isSidebarOpen: boolean;
+    onOpenHelp: () => void;
+}
+
+export default function Toolbar({ toggleSidebar, isSidebarOpen, onOpenHelp }: ToolbarProps) {
     const {
         lines, importText, importTextWithML, save, exportData, hasUnsavedChanges,
         viewMode, setViewMode, toggleConfidenceColors, showConfidenceColors,
         canUndo, canRedo, undo, redo, setLines, clearAll,
         segmentationMethod, isMLSegmenting, mlError,
-        syncStatus, projectName,
+        syncStatus
     } = useEditor();
+
     const { t, language, setLanguage } = useI18n();
     const { scanForConflicts } = useConflicts();
     const { isDark, toggleTheme } = useTheme();
-    const { loadDictionaryFile, loadDictionaryFileWithConflicts, resolveImportConflicts, exportToDictionary, externalDictionaries } = useGlossary();
+    const { loadDictionaryFileWithConflicts, resolveImportConflicts, exportToDictionary } = useGlossary();
+
+    // Refs
     const fileInputRef = useRef<HTMLInputElement>(null);
     const dictionaryInputRef = useRef<HTMLInputElement>(null);
-    const [showExportMenu, setShowExportMenu] = useState(false);
+
+    // Dropdown States
+    const [activeMenu, setActiveMenu] = useState<string | null>(null);
     const [importConflictData, setImportConflictData] = useState<{ conflicts: ImportConflict[]; dictionary: LoadedDictionary } | null>(null);
 
-    const handleImport = () => {
-        fileInputRef.current?.click();
-    };
+    // Helpers
+    const toggleMenu = (menu: string) => setActiveMenu(activeMenu === menu ? null : menu);
+    const closeMenus = () => setActiveMenu(null);
+    const hasContent = lines.length > 0;
+
+    // Handlers
+    const handleImport = () => fileInputRef.current?.click();
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = async (event) => {
             const text = event.target?.result as string;
-            if (segmentationMethod === 'ml') {
-                await importTextWithML(text);
-            } else {
-                importText(text);
-            }
+            if (segmentationMethod === 'ml') await importTextWithML(text);
+            else importText(text);
             setTimeout(() => scanForConflicts(lines), 500);
         };
         reader.readAsText(file);
@@ -66,10 +82,7 @@ export default function Toolbar() {
     const handleCleanZWSP = () => {
         const cleaned = lines.map(line => ({
             ...line,
-            segments: line.segments.map(seg => ({
-                ...seg,
-                text: seg.text.replace(/\u200B/g, ''),
-            })),
+            segments: line.segments.map(seg => ({ ...seg, text: seg.text.replace(/\u200B/g, '') })),
             originalText: cleanText(line.originalText),
         }));
         setLines(cleaned);
@@ -78,16 +91,11 @@ export default function Toolbar() {
     const handleNormalizeSpaces = () => {
         const cleaned = lines.map(line => ({
             ...line,
-            segments: line.segments.map(seg => ({
-                ...seg,
-                text: normalizeSpaces(seg.text),
-            })),
+            segments: line.segments.map(seg => ({ ...seg, text: normalizeSpaces(seg.text) })),
             originalText: normalizeSpaces(line.originalText),
         }));
         setLines(cleaned);
     };
-
-    const hasContent = lines.length > 0;
 
     const handleClear = () => {
         if (hasContent && window.confirm('Clear all content? This cannot be undone.')) {
@@ -95,23 +103,15 @@ export default function Toolbar() {
         }
     };
 
-    const handleImportDictionary = () => {
-        dictionaryInputRef.current?.click();
-    };
+    const handleImportDictionary = () => dictionaryInputRef.current?.click();
 
     const handleDictionaryFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         try {
             const result = await loadDictionaryFileWithConflicts(file);
-            if (result) {
-                // Conflicts detected — show modal
-                setImportConflictData(result);
-            } else {
-                // No conflicts, imported successfully
-                alert(`Dictionary "${file.name}" loaded successfully!`);
-            }
+            if (result) setImportConflictData(result);
+            else alert(`Dictionary "${file.name}" loaded successfully!`);
         } catch (error) {
             alert(`Failed to load dictionary: ${error}`);
         }
@@ -121,213 +121,170 @@ export default function Toolbar() {
     const handleResolveConflicts = (dictionary: LoadedDictionary, resolutions: Map<string, 'keep' | 'replace'>) => {
         resolveImportConflicts(dictionary, resolutions);
         setImportConflictData(null);
-        alert(`Dictionary "${dictionary.nameMyanmar || dictionary.name}" imported with conflict resolutions applied.`);
+        alert(`Dictionary imported with resolutions applied.`);
     };
 
     return (
-        <div className="bg-white/90 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 shadow-sm">
-            {/* Top Row: Branding + Actions */}
-            <div className="flex items-center justify-between px-4 py-2.5 gap-3">
-                {/* Left: Branding */}
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                        <FileEdit className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                        <div className="flex flex-col">
-                            <div className="flex items-center gap-2">
-                                <h1 className="text-base font-bold text-slate-800 dark:text-slate-100">
-                                    MS Myan-Seg-Editor
-                                </h1>
-                                <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-[10px] font-semibold rounded uppercase tracking-wide">
-                                    Alpha
-                                </span>
-                            </div>
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                                v1.1.0 (Conflict Aware)
-                            </span>
+        <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 select-none">
+            {/* Main Header Bar */}
+            <div className="flex items-center justify-between px-4 h-14">
+
+                {/* Left: Branding & Menu */}
+                <div className="flex items-center gap-6">
+                    {/* Logo Area */}
+                    <div className="flex items-center gap-2.5">
+                        <div className="bg-indigo-600 rounded-lg p-1.5 shadow-lg shadow-indigo-500/30">
+                            <FileEdit className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex flex-col leading-none">
+                            <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight">
+                                Segdictor
+                            </h1>
+                            <span className="text-[10px] text-slate-500 font-medium">AI-Powered Segmentation</span>
+                        </div>
+                    </div>
+
+                    {/* Compact NavMenu Style Menus */}
+                    <div className="hidden md:flex items-center gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg">
+
+                        {/* FILE MENU */}
+                        <div className="relative">
+                            <button
+                                onClick={() => toggleMenu('file')}
+                                className="px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all flex items-center gap-1.5"
+                            >
+                                <File className="w-3.5 h-3.5" /> File <ChevronDown className="w-3 h-3 opacity-50" />
+                            </button>
+                            {activeMenu === 'file' && (
+                                <>
+                                    <div className="fixed inset-0 z-30" onClick={closeMenus} />
+                                    <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-40 animate-in fade-in zoom-in-95">
+                                        <button onClick={() => { handleImport(); closeMenus(); }} className="w-full text-left px-3 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-indigo-900/20 flex items-center gap-2">
+                                            <FolderOpen className="w-3.5 h-3.5" /> Import Text
+                                        </button>
+                                        <button onClick={() => { handleImportDictionary(); closeMenus(); }} className="w-full text-left px-3 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-indigo-900/20 flex items-center gap-2">
+                                            <BookOpen className="w-3.5 h-3.5" /> Import Dictionary
+                                        </button>
+                                        <div className="h-px bg-slate-100 dark:bg-slate-700 my-1" />
+                                        <button onClick={() => { handleExport(); closeMenus(); }} disabled={!hasContent} className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 disabled:opacity-50 flex items-center gap-2">
+                                            <Download className="w-3.5 h-3.5" /> Export Dataset
+                                        </button>
+                                        <button onClick={() => { exportToDictionary('json'); closeMenus(); }} className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                                            <Book className="w-3.5 h-3.5" /> Export Glossary
+                                        </button>
+                                        <div className="h-px bg-slate-100 dark:bg-slate-700 my-1" />
+                                        <button onClick={() => { handleClear(); closeMenus(); }} disabled={!hasContent} className="w-full text-left px-3 py-2 text-xs hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-600 disabled:opacity-50 flex items-center gap-2">
+                                            <Trash2 className="w-3.5 h-3.5" /> Clear Workspace
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* EDIT MENU */}
+                        <div className="relative">
+                            <button
+                                onClick={() => toggleMenu('edit')}
+                                className="px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all flex items-center gap-1.5"
+                            >
+                                <FileEdit className="w-3.5 h-3.5" /> Edit <ChevronDown className="w-3 h-3 opacity-50" />
+                            </button>
+                            {activeMenu === 'edit' && (
+                                <>
+                                    <div className="fixed inset-0 z-30" onClick={closeMenus} />
+                                    <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-40 animate-in fade-in zoom-in-95">
+                                        <button onClick={() => { undo(); closeMenus(); }} disabled={!canUndo} className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 flex items-center gap-2">
+                                            <Undo2 className="w-3.5 h-3.5" /> Undo
+                                        </button>
+                                        <button onClick={() => { redo(); closeMenus(); }} disabled={!canRedo} className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 flex items-center gap-2">
+                                            <Redo2 className="w-3.5 h-3.5" /> Redo
+                                        </button>
+                                        <div className="h-px bg-slate-100 dark:bg-slate-700 my-1" />
+                                        <button onClick={() => { handleCleanZWSP(); closeMenus(); }} className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2">
+                                            <Eraser className="w-3.5 h-3.5" /> Clean ZWSP
+                                        </button>
+                                        <button onClick={() => { handleNormalizeSpaces(); closeMenus(); }} className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2">
+                                            <Ruler className="w-3.5 h-3.5" /> Normalize Spaces
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* VIEW MENU */}
+                        <div className="relative">
+                            <button
+                                onClick={() => toggleMenu('view')}
+                                className="px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all flex items-center gap-1.5"
+                            >
+                                <Eye className="w-3.5 h-3.5" /> View <ChevronDown className="w-3 h-3 opacity-50" />
+                            </button>
+                            {activeMenu === 'view' && (
+                                <>
+                                    <div className="fixed inset-0 z-30" onClick={closeMenus} />
+                                    <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-40 animate-in fade-in zoom-in-95">
+                                        <button onClick={() => { setViewMode(viewMode === 'line' ? 'paragraph' : 'line'); closeMenus(); }} className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2">
+                                            {viewMode === 'line' ? <FileText className="w-3.5 h-3.5" /> : <ScrollText className="w-3.5 h-3.5" />}
+                                            Switch to {viewMode === 'line' ? 'Paragraph' : 'Line'} View
+                                        </button>
+                                        <button onClick={() => { toggleConfidenceColors(); closeMenus(); }} className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2">
+                                            <Palette className="w-3.5 h-3.5" /> {showConfidenceColors ? 'Hide' : 'Show'} Colors
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
 
-                {/* Right: Theme, Language, Status */}
-                <div className="flex items-center gap-2">
-                    {hasUnsavedChanges && (
-                        <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700 rounded-md text-[10px] font-semibold animate-pulse flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-amber-500 dark:bg-amber-400 rounded-full"></span>
-                            {t('unsavedChanges')}
-                        </span>
-                    )}
-                    <button
-                        onClick={toggleTheme}
-                        className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all text-base hover:scale-105"
-                        title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                    >
-                        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                    </button>
-                    <button
-                        onClick={() => setLanguage(language === 'en' ? 'mm' : 'en')}
-                        className="px-3 py-1.5 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-semibold transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-1.5"
-                    >
-                        {language === 'en' ? <><Languages className="w-3 h-3" /> မြန်မာ</> : <><Languages className="w-3 h-3" /> English</>}
-                    </button>
-                </div>
-            </div>
-
-            {/* Bottom Row: Action Buttons */}
-            <div className="flex items-center justify-between px-4 pb-2.5 gap-2 border-t border-slate-100 dark:border-slate-800 pt-2">
-                {/* Left: File Operations */}
-                <div className="flex items-center gap-2">
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        accept=".txt,.text"
-                        onChange={handleFileChange}
-                        className="hidden"
-                    />
-                    <button
-                        onClick={handleImport}
-                        disabled={isMLSegmenting}
-                        className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md text-xs font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1.5 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isMLSegmenting ? (
-                            <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> ML Segmenting...</>
-                        ) : (
-                            <><FolderOpen className="w-4 h-4" /> {t('importText')}{segmentationMethod === 'ml' ? ' (ML)' : ''}</>
-                        )}
-                    </button>
-                    <button
-                        onClick={handleExport}
-                        disabled={!hasContent}
-                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md flex items-center gap-1.5 hover:scale-[1.02]"
-                    >
-                        <Download className="w-4 h-4" /> {t('exportDataset')}
-                    </button>
+                {/* Right: Actions */}
+                <div className="flex items-center gap-3">
+                    {/* Quick Save Action */}
                     <button
                         onClick={save}
                         disabled={!hasUnsavedChanges}
-                        className="px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white rounded-md text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md flex items-center gap-1.5 hover:scale-[1.02]"
+                        className={`p-2 rounded-full transition-colors ${hasUnsavedChanges ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' : 'text-slate-400'}`}
+                        title="Save Progress (Ctrl+S)"
                     >
-                        <Save className="w-4 h-4" /> {t('saveProgress')}
+                        <Save className="w-5 h-5" />
                     </button>
+
+                    {/* Theme Toggle */}
                     <button
-                        onClick={handleClear}
-                        disabled={!hasContent}
-                        className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-md text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md flex items-center gap-1.5 hover:scale-[1.02]"
+                        onClick={toggleTheme}
+                        className="p-2 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-full transition-colors"
+                        title="Toggle Theme"
                     >
-                        <Trash2 className="w-4 h-4" /> {t('clearWorkspace')}
+                        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                     </button>
 
-
-
-                    {/* Undo / Redo */}
-                    <div className="border-l border-slate-200 dark:border-slate-700 pl-2 ml-1 flex gap-1">
-                        <button
-                            onClick={undo}
-                            disabled={!canUndo}
-                            className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-base disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:scale-105"
-                            title="Undo (Ctrl+Z)"
-                        >
-                            <Undo2 className="w-5 h-5" />
-                        </button>
-                        <button
-                            onClick={redo}
-                            disabled={!canRedo}
-                            className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-base disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:scale-105"
-                            title="Redo (Ctrl+Shift+Z)"
-                        >
-                            <Redo2 className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Center: Tools & View */}
-                <div className="flex items-center gap-2">
+                    {/* Help / Quick Start */}
                     <button
-                        onClick={handleCleanZWSP}
-                        disabled={!hasContent}
-                        className="px-3 py-1.5 text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 dark:hover:text-amber-300 rounded-md text-xs font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 border border-slate-200 dark:border-slate-700"
+                        onClick={onOpenHelp}
+                        className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-colors"
+                        title="Quick Start Guide"
                     >
-                        <Eraser className="w-4 h-4" /> {t('cleanZWSP')}
+                        <HelpCircle className="w-5 h-5" />
                     </button>
+
+                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
+
+                    {/* Sidebar Toggle */}
                     <button
-                        onClick={handleNormalizeSpaces}
-                        disabled={!hasContent}
-                        className="px-3 py-1.5 text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 dark:hover:text-amber-300 rounded-md text-xs font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 border border-slate-200 dark:border-slate-700"
+                        onClick={toggleSidebar}
+                        className={`p-2 rounded-lg transition-colors ${isSidebarOpen ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100' : 'text-slate-500 hover:bg-slate-50'}`}
+                        title={isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
                     >
-                        <Ruler className="w-4 h-4" /> {t('normalizeSpaces')}
+                        {isSidebarOpen ? <PanelRightClose className="w-5 h-5" /> : <PanelRightOpen className="w-5 h-5" />}
                     </button>
-
-                    <div className="border-l border-slate-200 dark:border-slate-700 pl-2 ml-1 flex gap-1.5">
-                        <button
-                            onClick={() => setViewMode(viewMode === 'line' ? 'paragraph' : 'line')}
-                            className="px-3 py-1.5 text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-700 dark:hover:text-indigo-300 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 border border-slate-200 dark:border-slate-700"
-                        >
-                            {viewMode === 'line' ? <FileText className="w-4 h-4" /> : <ScrollText className="w-4 h-4" />}
-                            {viewMode === 'line' ? t('paragraphView') : t('lineView')}
-                        </button>
-                        <button
-                            onClick={toggleConfidenceColors}
-                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 border ${showConfidenceColors
-                                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700'
-                                : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'
-                                }`}
-                        >
-                            <Palette className="w-4 h-4" /> {showConfidenceColors ? t('hideConfidenceColors') : t('showConfidenceColors')}
-                        </button>
-                    </div>
-
-                    {/* Dictionary Operations */}
-                    <div className="h-6 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-
-                    <button
-                        onClick={handleImportDictionary}
-                        className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-md text-xs font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1.5 hover:scale-[1.02]"
-                        title="Import Dictionary JSON"
-                    >
-                        <BookOpen className="w-4 h-4" /> Import Dict
-                    </button>
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowExportMenu(!showExportMenu)}
-                            className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-md text-xs font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1.5 hover:scale-[1.02]"
-                            title="Export Manual Dictionary"
-                        >
-                            <Book className="w-4 h-4" /> Export Dict <ChevronDown className="w-3 h-3 opacity-70" />
-                        </button>
-                        {showExportMenu && (
-                            <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 min-w-[140px] py-1 animate-in fade-in">
-                                <button
-                                    onClick={() => { exportToDictionary('json'); setShowExportMenu(false); }}
-                                    className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 flex items-center gap-2 transition-colors"
-                                >
-                                    <FileJson className="w-3 h-3" /> Export as JSON
-                                </button>
-                                <button
-                                    onClick={() => { exportToDictionary('csv'); setShowExportMenu(false); }}
-                                    className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 flex items-center gap-2 transition-colors"
-                                >
-                                    <FileSpreadsheet className="w-3 h-3" /> Export as CSV
-                                </button>
-                            </div>
-                        )}
-                    </div>
                 </div>
             </div>
 
-            {/* Hidden dictionary file input */}
-            <input
-                ref={dictionaryInputRef}
-                type="file"
-                accept=".json"
-                onChange={handleDictionaryFileChange}
-                className="hidden"
-            />
+            {/* Hidden Inputs */}
+            <input ref={fileInputRef} type="file" accept=".txt,.text" onChange={handleFileChange} className="hidden" />
+            <input ref={dictionaryInputRef} type="file" accept=".json" onChange={handleDictionaryFileChange} className="hidden" />
 
-            {/* Click-away overlay for export menu */}
-            {showExportMenu && (
-                <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
-            )}
-
-            {/* Import Conflict Modal */}
+            {/* Modals */}
             {importConflictData && (
                 <DictImportConflictModal
                     conflicts={importConflictData.conflicts}
@@ -337,28 +294,10 @@ export default function Toolbar() {
                 />
             )}
 
-            {/* ML Segmentation Loading Overlay */}
+            {/* Loading / Error States (ML) */}
             {isMLSegmenting && (
-                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4 max-w-sm mx-4">
-                        <svg className="animate-spin w-10 h-10 text-indigo-500" viewBox="0 0 24 24" fill="none">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                        <div className="text-center">
-                            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">ML Segmentation</h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Backend API ဖြင့် segment လုပ်နေပါသည်...</p>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ML Error Toast */}
-            {mlError && (
-                <div className="fixed bottom-4 right-4 z-50 bg-amber-50 dark:bg-amber-900/80 border border-amber-200 dark:border-amber-700 rounded-xl p-4 shadow-xl max-w-sm animate-in fade-in slide-in-from-bottom-2">
-                    <div className="text-sm font-semibold text-amber-800 dark:text-amber-200">ML Segmentation Failed</div>
-                    <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">{mlError}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Local segmentation ဖြင့် fallback လုပ်ပြီးပါပြီ။</div>
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-indigo-100 overflow-hidden">
+                    <div className="h-full bg-indigo-600 animate-progress"></div>
                 </div>
             )}
         </div>

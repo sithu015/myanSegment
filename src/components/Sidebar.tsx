@@ -55,14 +55,14 @@ export default function Sidebar() {
     );
 
     return (
-        <div className="w-72 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border-l border-slate-200 dark:border-slate-700 overflow-y-auto flex flex-col shadow-sm">
+        <div className="w-full h-full bg-white/60 dark:bg-slate-900/60 backdrop-blur-md overflow-y-auto flex flex-col shadow-sm">
             {/* Cloud Sync Status */}
             {projectId && (
                 <div className="px-4 pt-3 pb-1">
                     <div className={`flex items-center gap-1.5 text-[10px] font-medium rounded-lg px-2.5 py-1.5 ${syncStatus === 'synced' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' :
-                            syncStatus === 'syncing' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' :
-                                syncStatus === 'error' || syncStatus === 'offline' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400' :
-                                    'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                        syncStatus === 'syncing' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' :
+                            syncStatus === 'error' || syncStatus === 'offline' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400' :
+                                'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                         }`}>
                         {syncStatus === 'synced' && <><Cloud className="w-3 h-3" /> Cloud Synced</>}
                         {syncStatus === 'syncing' && <><Loader2 className="w-3 h-3 animate-spin" /> Syncing...</>}
