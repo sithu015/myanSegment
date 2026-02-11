@@ -1,21 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useEditor } from '../context/EditorContext';
+import React, { useState, useEffect } from 'react';
+import { useEditor, SegmentationMethod } from '../context/EditorContext';
 import { useI18n } from '../context/I18nContext';
 import { useConflicts } from '../context/ConflictContext';
 import { useGlossary } from '../context/GlossaryContext';
 import { useGranularity } from '../context/GranularityContext';
 import { GranularityPreset } from '../types';
-import { BarChart2, ChevronDown, Scissors, PenTool, AlertTriangle, CheckCircle, Library, User, Bot, Book, BookOpen, AlertCircle, Settings, Keyboard } from 'lucide-react';
+import { checkMLServerHealth } from '../lib/segmentApi';
+import { BarChart2, ChevronDown, Scissors, PenTool, AlertTriangle, CheckCircle, Library, User, Bot, Book, BookOpen, AlertCircle, Settings, Keyboard, Cpu, Sparkles } from 'lucide-react';
 
 export default function Sidebar() {
-    const { lines, mode, currentLineIndex, currentSegmentIndex, getSegmentedWord } = useEditor();
+    const { lines, mode, currentLineIndex, currentSegmentIndex, getSegmentedWord, segmentationMethod, setSegmentationMethod, isMLSegmenting } = useEditor();
     const { t } = useI18n();
     const { conflicts, setActiveConflict } = useConflicts();
     const { glossary, lookupWord, lookupWordFull, externalDictionaries } = useGlossary();
     const { rules, activePreset, applyPreset, setRuleMode } = useGranularity();
     const [showStats, setShowStats] = useState(true);
+    const [mlServerOnline, setMlServerOnline] = useState<boolean | null>(null);
 
     // Calculate statistics
     const totalLines = lines.length;
@@ -110,6 +112,65 @@ export default function Sidebar() {
                     }`}>
                     {mode === 'segmentation' ? <Scissors className="w-3.5 h-3.5" /> : <PenTool className="w-3.5 h-3.5" />} {mode === 'segmentation' ? t('segmentationMode') : t('editMode')}
                 </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent mx-4" />
+
+            {/* Segmentation Method Toggle */}
+            <div className="p-4">
+                <SectionHeader icon={<Sparkles className="w-3.5 h-3.5" />} title="Segmentation Method" />
+
+                <div className="space-y-1.5">
+                    <button
+                        onClick={() => setSegmentationMethod('local')}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all text-left ${segmentationMethod === 'local'
+                            ? 'bg-gradient-to-br from-blue-50 to-blue-100/60 dark:from-blue-900/30 dark:to-blue-900/10 ring-2 ring-blue-300 dark:ring-blue-700 shadow-sm'
+                            : 'bg-slate-50/60 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                            }`}
+                    >
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${segmentationMethod === 'local' ? 'bg-blue-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
+                            <Cpu className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                            <div className={`text-xs font-semibold ${segmentationMethod === 'local' ? 'text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-400'}`}>Local (Syllable)</div>
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500">Rule-based syllable segmentation</div>
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={async () => {
+                            setSegmentationMethod('ml');
+                            const online = await checkMLServerHealth();
+                            setMlServerOnline(online);
+                        }}
+                        disabled={isMLSegmenting}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all text-left ${segmentationMethod === 'ml'
+                            ? 'bg-gradient-to-br from-violet-50 to-violet-100/60 dark:from-violet-900/30 dark:to-violet-900/10 ring-2 ring-violet-300 dark:ring-violet-700 shadow-sm'
+                            : 'bg-slate-50/60 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                            } disabled:opacity-50`}
+                    >
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${segmentationMethod === 'ml' ? 'bg-violet-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
+                            <Sparkles className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center gap-1.5">
+                                <span className={`text-xs font-semibold ${segmentationMethod === 'ml' ? 'text-violet-700 dark:text-violet-300' : 'text-slate-600 dark:text-slate-400'}`}>ML (Backend API)</span>
+                                {segmentationMethod === 'ml' && mlServerOnline !== null && (
+                                    <span className={`w-1.5 h-1.5 rounded-full ${mlServerOnline ? 'bg-emerald-500' : 'bg-red-500'}`} title={mlServerOnline ? 'Server Online' : 'Server Offline'} />
+                                )}
+                            </div>
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500">ML word segmentation via API</div>
+                        </div>
+                    </button>
+                </div>
+
+                {segmentationMethod === 'ml' && mlServerOnline === false && (
+                    <div className="mt-2 text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-900/20 rounded-lg px-3 py-2 flex items-center gap-1.5">
+                        <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+                        <span>ML server (ml-seg.ygn.app:8000) ချိတ်ဆက်၍ မရပါ။ Server ကို ဖွင့်ပေးပါ။</span>
+                    </div>
+                )}
             </div>
 
             {/* Divider */}

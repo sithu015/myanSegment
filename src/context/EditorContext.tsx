@@ -3,6 +3,9 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useRef, useEffect } from 'react';
 import { Line, Segment, EditorMode, ViewMode, UndoEntry, ProjectData, ProjectMeta } from '../types';
 import { segmentIntoSyllables, splitIntoLines, resegment, isUnderSegmented } from '../lib/sylbreak';
+import { segmentBatchML } from '../lib/segmentApi';
+
+export type SegmentationMethod = 'local' | 'ml';
 
 const STORAGE_KEY = 'myan-seg-editor';
 const MAX_UNDO_HISTORY = 50;
@@ -17,15 +20,20 @@ interface EditorContextType {
     showConfidenceColors: boolean;
     canUndo: boolean;
     canRedo: boolean;
+    segmentationMethod: SegmentationMethod;
+    isMLSegmenting: boolean;
+    mlError: string | null;
 
     // Actions
     importText: (text: string) => void;
+    importTextWithML: (text: string) => Promise<void>;
     splitSegment: (lineIndex: number, segmentIndex: number, position: number) => void;
     mergeSegments: (lineIndex: number, segmentIndex: number) => void;
     editSegment: (lineIndex: number, segmentIndex: number, newText: string) => void;
     setActiveSegment: (lineIndex: number, segmentIndex: number) => void;
     setMode: (mode: EditorMode) => void;
     setViewMode: (mode: ViewMode) => void;
+    setSegmentationMethod: (method: SegmentationMethod) => void;
     toggleConfidenceColors: () => void;
     navigateLeft: () => void;
     navigateRight: () => void;
@@ -52,6 +60,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [showConfidenceColors, setShowConfidenceColors] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [segmentationMethod, setSegmentationMethod] = useState<SegmentationMethod>('local');
+    const [isMLSegmenting, setIsMLSegmenting] = useState(false);
+    const [mlError, setMlError] = useState<string | null>(null);
 
     // Undo/Redo stacks
     const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
@@ -180,6 +191,49 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         setUndoStack([]);
         setRedoStack([]);
     }, [generateSegmentId, addWarnings]);
+
+    const importTextWithML = useCallback(async (text: string) => {
+        const textLines = splitIntoLines(text);
+        setIsMLSegmenting(true);
+        setMlError(null);
+
+        try {
+            const batchResults = await segmentBatchML(textLines);
+            const newLines: Line[] = textLines.map((lineText, index) => {
+                const mlSegments = batchResults[index] || segmentIntoSyllables(lineText);
+                const segments: Segment[] = addWarnings(
+                    mlSegments.map((seg, segIndex) => ({
+                        id: generateSegmentId(index + 1, segIndex),
+                        text: seg,
+                        isActive: index === 0 && segIndex === 0,
+                        hasConflict: false,
+                    }))
+                );
+
+                return {
+                    id: index + 1,
+                    originalText: lineText,
+                    segments,
+                    status: 'pending' as const,
+                };
+            });
+
+            setLinesState(newLines);
+            setCurrentLineIndex(0);
+            setCurrentSegmentIndex(0);
+            setHasUnsavedChanges(true);
+            setUndoStack([]);
+            setRedoStack([]);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'ML segmentation failed';
+            setMlError(message);
+            console.error('ML Segmentation failed, falling back to local:', error);
+            // Fallback to local segmentation
+            importText(text);
+        } finally {
+            setIsMLSegmenting(false);
+        }
+    }, [generateSegmentId, addWarnings, importText]);
 
     const splitSegment = useCallback((lineIndex: number, segmentIndex: number, position: number) => {
         pushUndo(`Split segment on line ${lineIndex + 1}`);
@@ -463,13 +517,18 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 showConfidenceColors,
                 canUndo: undoStack.length > 0,
                 canRedo: redoStack.length > 0,
+                segmentationMethod,
+                isMLSegmenting,
+                mlError,
                 importText,
+                importTextWithML,
                 splitSegment,
                 mergeSegments,
                 editSegment,
                 setActiveSegment,
                 setMode,
                 setViewMode,
+                setSegmentationMethod,
                 toggleConfidenceColors,
                 navigateLeft,
                 navigateRight,

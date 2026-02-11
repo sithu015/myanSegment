@@ -14,9 +14,10 @@ import { FileEdit, Sun, Moon, Languages, FolderOpen, Download, Save, Trash2, Und
 
 export default function Toolbar() {
     const {
-        lines, importText, save, exportData, hasUnsavedChanges,
+        lines, importText, importTextWithML, save, exportData, hasUnsavedChanges,
         viewMode, setViewMode, toggleConfidenceColors, showConfidenceColors,
         canUndo, canRedo, undo, redo, setLines, clearAll,
+        segmentationMethod, isMLSegmenting, mlError,
     } = useEditor();
     const { t, language, setLanguage } = useI18n();
     const { scanForConflicts } = useConflicts();
@@ -36,9 +37,13 @@ export default function Toolbar() {
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             const text = event.target?.result as string;
-            importText(text);
+            if (segmentationMethod === 'ml') {
+                await importTextWithML(text);
+            } else {
+                importText(text);
+            }
             setTimeout(() => scanForConflicts(lines), 500);
         };
         reader.readAsText(file);
@@ -179,9 +184,14 @@ export default function Toolbar() {
                     />
                     <button
                         onClick={handleImport}
-                        className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md text-xs font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1.5 hover:scale-[1.02]"
+                        disabled={isMLSegmenting}
+                        className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md text-xs font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1.5 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <FolderOpen className="w-4 h-4" /> {t('importText')}
+                        {isMLSegmenting ? (
+                            <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> ML Segmenting...</>
+                        ) : (
+                            <><FolderOpen className="w-4 h-4" /> {t('importText')}{segmentationMethod === 'ml' ? ' (ML)' : ''}</>
+                        )}
                     </button>
                     <button
                         onClick={handleExport}
@@ -324,6 +334,31 @@ export default function Toolbar() {
                     onResolve={handleResolveConflicts}
                     onCancel={() => setImportConflictData(null)}
                 />
+            )}
+
+            {/* ML Segmentation Loading Overlay */}
+            {isMLSegmenting && (
+                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4 max-w-sm mx-4">
+                        <svg className="animate-spin w-10 h-10 text-indigo-500" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        <div className="text-center">
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">ML Segmentation</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Backend API ဖြင့် segment လုပ်နေပါသည်...</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ML Error Toast */}
+            {mlError && (
+                <div className="fixed bottom-4 right-4 z-50 bg-amber-50 dark:bg-amber-900/80 border border-amber-200 dark:border-amber-700 rounded-xl p-4 shadow-xl max-w-sm animate-in fade-in slide-in-from-bottom-2">
+                    <div className="text-sm font-semibold text-amber-800 dark:text-amber-200">ML Segmentation Failed</div>
+                    <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">{mlError}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Local segmentation ဖြင့် fallback လုပ်ပြီးပါပြီ။</div>
+                </div>
             )}
         </div>
     );
