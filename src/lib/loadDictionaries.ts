@@ -104,7 +104,8 @@ export async function loadAllDictionaries(): Promise<LoadedDictionary[]> {
     // 2. Fetch the index and load large dictionaries at runtime
     const index = await fetchDictionaryIndex();
     if (index) {
-        const enabledDicts = index.dictionaries.filter(d => d.enabled);
+        // Load all dictionaries from the index, ignoring the 'enabled' flag from JSON
+        const enabledDicts = index.dictionaries.map(d => ({ ...d, enabled: true }));
 
         // Skip already-bundled ones
         const bundledIds = new Set(bundledDictionaries.map(b => b.id));

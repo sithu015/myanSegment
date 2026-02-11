@@ -219,9 +219,9 @@ export function GlossaryProvider({ children }: { children: ReactNode }) {
             });
         }
 
-        // 3. External dictionaries (only enabled)
+        // 3. External dictionaries (all loaded are active)
         for (const dict of externalDictionaries) {
-            if (!dict.enabled) continue;
+            // dict.enabled check removed - we want all dictionaries combined
             for (const entry of dict.entries) {
                 pushMatch(entry.word, {
                     word: entry.word,

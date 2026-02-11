@@ -10,6 +10,7 @@ import ContextMenu from './ContextMenu';
 import ConflictResolutionModal from './ConflictResolutionModal';
 import { segmentIntoSyllables } from '../lib/sylbreak';
 import { FileEdit, FolderOpen, Scissors, PenTool, X, Keyboard, AlertTriangle, CheckCircle, Circle } from 'lucide-react';
+import { Virtuoso } from 'react-virtuoso';
 
 export default function EditorWorkspace() {
     const {
@@ -280,88 +281,96 @@ export default function EditorWorkspace() {
 
     // Render modes
     const renderLineView = () => (
-        <div className="flex-1 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="flex-1 overflow-hidden bg-slate-50/50 dark:bg-slate-900/50 flex flex-col">
             <ModeBar />
-            <div className="p-4 space-y-2">
-                {lines.map((line, lineIndex) => {
-                    const lineConflicts = getConflictsForLine(lineIndex);
-                    const hasConflicts = lineConflicts.length > 0;
-                    const isActive = lineIndex === currentLineIndex;
 
-                    return (
-                        <div
-                            key={line.id}
-                            className={`rounded-xl p-4 transition-all duration-200 ${isActive
-                                ? 'bg-amber-50/80 dark:bg-amber-900/10 shadow-lg shadow-amber-100/50 dark:shadow-amber-900/20 ring-2 ring-amber-200 dark:ring-amber-700/40'
-                                : hasConflicts
-                                    ? 'bg-white/70 dark:bg-slate-800/50 ring-1 ring-amber-200/60 dark:ring-amber-700/40'
-                                    : 'bg-white/50 dark:bg-slate-800/30 hover:bg-white/80 dark:hover:bg-slate-800/50 hover:shadow-sm'
-                                }`}
-                        >
-                            {/* Line header */}
-                            <div className="flex items-center justify-between mb-2.5">
-                                <span className="text-[10px] text-slate-400 dark:text-slate-600 font-mono">
-                                    #{line.id}
-                                </span>
-                                <div className="flex items-center gap-1.5">
-                                    {hasConflicts && (
-                                        <button
-                                            onClick={() => setActiveConflict(lineConflicts[0])}
-                                            className="text-[10px] px-2 py-0.5 bg-amber-100/80 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-full hover:bg-amber-200/80 transition-colors"
-                                        >
-                                            <span className="flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> {lineConflicts.length}</span>
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => markLineReviewed(lineIndex)}
-                                        className={`text-[10px] px-2 py-0.5 rounded-full transition-all ${line.status === 'reviewed'
-                                            ? 'bg-emerald-100/80 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
-                                            : 'text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-                                            }`}
-                                    >
-                                        <span className="flex items-center gap-1">{line.status === 'reviewed' ? <CheckCircle className="w-3 h-3" /> : <Circle className="w-3 h-3" />} {line.status === 'reviewed' ? t('reviewed') : t('pending')}</span>
-                                    </button>
+            {/* Virtuoso needs a parent with a defined height — flex-1 provides that */}
+            <div className="flex-1">
+                <Virtuoso
+                    totalCount={lines.length}
+                    overscan={200}
+                    itemContent={(index) => {
+                        const line = lines[index];
+                        const lineConflicts = getConflictsForLine(index);
+                        const hasConflicts = lineConflicts.length > 0;
+                        const isActive = index === currentLineIndex;
+
+                        return (
+                            <div className="px-4 pb-2 first:pt-4">
+                                <div
+                                    className={`rounded-xl p-4 transition-all duration-200 ${isActive
+                                        ? 'bg-amber-50/80 dark:bg-amber-900/10 shadow-lg shadow-amber-100/50 dark:shadow-amber-900/20 ring-2 ring-amber-200 dark:ring-amber-700/40'
+                                        : hasConflicts
+                                            ? 'bg-white/70 dark:bg-slate-800/50 ring-1 ring-amber-200/60 dark:ring-amber-700/40'
+                                            : 'bg-white/50 dark:bg-slate-800/30 hover:bg-white/80 dark:hover:bg-slate-800/50 hover:shadow-sm'
+                                        }`}
+                                >
+                                    {/* Line header */}
+                                    <div className="flex items-center justify-between mb-2.5">
+                                        <span className="text-[10px] text-slate-400 dark:text-slate-600 font-mono">
+                                            #{line.id}
+                                        </span>
+                                        <div className="flex items-center gap-1.5">
+                                            {hasConflicts && (
+                                                <button
+                                                    onClick={() => setActiveConflict(lineConflicts[0])}
+                                                    className="text-[10px] px-2 py-0.5 bg-amber-100/80 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-full hover:bg-amber-200/80 transition-colors"
+                                                >
+                                                    <span className="flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> {lineConflicts.length}</span>
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => markLineReviewed(index)}
+                                                className={`text-[10px] px-2 py-0.5 rounded-full transition-all ${line.status === 'reviewed'
+                                                    ? 'bg-emerald-100/80 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
+                                                    : 'text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                                    }`}
+                                            >
+                                                <span className="flex items-center gap-1">{line.status === 'reviewed' ? <CheckCircle className="w-3 h-3" /> : <Circle className="w-3 h-3" />} {line.status === 'reviewed' ? t('reviewed') : t('pending')}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Segments */}
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {line.segments.map((segment, segIndex) => {
+                                            if (isEditing && index === currentLineIndex && segIndex === currentSegmentIndex) {
+                                                return (
+                                                    <input
+                                                        key={segment.id}
+                                                        ref={editInputRef}
+                                                        type="text"
+                                                        value={editingText}
+                                                        onChange={(e) => setEditingText(e.target.value)}
+                                                        onKeyDown={handleEditKeyDown}
+                                                        onBlur={() => exitEditMode(true)}
+                                                        className="px-3 py-1.5 border-2 border-orange-400 dark:border-orange-500 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-base outline-none focus:ring-2 focus:ring-orange-300 min-w-[60px] text-slate-800 dark:text-slate-200 myanmar-text"
+                                                    />
+                                                );
+                                            }
+
+                                            return (
+                                                <SegmentBlock
+                                                    key={segment.id}
+                                                    segment={segment}
+                                                    lineIndex={index}
+                                                    segmentIndex={segIndex}
+                                                    showConfidenceColors={showConfidenceColors}
+                                                    onClick={() => setActiveSegment(index, segIndex)}
+                                                    onDoubleClick={() => {
+                                                        setActiveSegment(index, segIndex);
+                                                        enterEditMode();
+                                                    }}
+                                                    onContextMenu={(e) => handleContextMenu(e, index, segIndex)}
+                                                />
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
-
-                            {/* Segments */}
-                            <div className="flex flex-wrap gap-1.5">
-                                {line.segments.map((segment, segIndex) => {
-                                    if (isEditing && lineIndex === currentLineIndex && segIndex === currentSegmentIndex) {
-                                        return (
-                                            <input
-                                                key={segment.id}
-                                                ref={editInputRef}
-                                                type="text"
-                                                value={editingText}
-                                                onChange={(e) => setEditingText(e.target.value)}
-                                                onKeyDown={handleEditKeyDown}
-                                                onBlur={() => exitEditMode(true)}
-                                                className="px-3 py-1.5 border-2 border-orange-400 dark:border-orange-500 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-base outline-none focus:ring-2 focus:ring-orange-300 min-w-[60px] text-slate-800 dark:text-slate-200 myanmar-text"
-                                            />
-                                        );
-                                    }
-
-                                    return (
-                                        <SegmentBlock
-                                            key={segment.id}
-                                            segment={segment}
-                                            lineIndex={lineIndex}
-                                            segmentIndex={segIndex}
-                                            showConfidenceColors={showConfidenceColors}
-                                            onClick={() => setActiveSegment(lineIndex, segIndex)}
-                                            onDoubleClick={() => {
-                                                setActiveSegment(lineIndex, segIndex);
-                                                enterEditMode();
-                                            }}
-                                            onContextMenu={(e) => handleContextMenu(e, lineIndex, segIndex)}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    );
-                })}
+                        );
+                    }}
+                />
             </div>
         </div>
     );
