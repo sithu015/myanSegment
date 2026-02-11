@@ -1,10 +1,15 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
 import { GlossaryEntry, Glossary, GlossarySource } from '../types';
 import { LoadedDictionary, DictLookupResult, DictLookupMatch } from '../types/dictionary';
 import { loadDictionaryFromFile, exportToDictionaryFile, downloadFile, exportGlossaryAsCSV, detectImportConflicts, ImportConflict } from '../utils/dictionaryService';
 import { loadAllDictionaries } from '../lib/loadDictionaries';
+import {
+    syncGlossaryToSupabase,
+    loadGlossaryFromSupabase,
+    upsertSegmentPattern,
+} from '../lib/supabaseService';
 
 const STORAGE_KEY = 'myan-seg-glossary';
 const AUTO_PROMOTE_THRESHOLD = 3; // spec §3.2: 3+ consistent uses → permanent
@@ -41,8 +46,9 @@ export function GlossaryProvider({ children }: { children: ReactNode }) {
     const [dictionariesLoading, setDictionariesLoading] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [autoLoadComplete, setAutoLoadComplete] = useState(false);
+    const glossarySyncTimer = useRef<NodeJS.Timeout | null>(null);
 
-    // Load from localStorage on mount
+    // Load from localStorage on mount, then merge with Supabase
     useEffect(() => {
         setMounted(true);
         try {
@@ -53,6 +59,34 @@ export function GlossaryProvider({ children }: { children: ReactNode }) {
         } catch {
             // ignore parse errors
         }
+
+        // Load from Supabase and merge
+        (async () => {
+            try {
+                const supabaseGlossary = await loadGlossaryFromSupabase();
+                if (supabaseGlossary) {
+                    setGlossary(prev => {
+                        // Merge: Supabase entries that don't exist locally get added
+                        const mergedManual = [...prev.manual];
+                        for (const entry of supabaseGlossary.manual) {
+                            if (!mergedManual.find(e => e.word === entry.word)) {
+                                mergedManual.push(entry);
+                            }
+                        }
+                        const mergedAuto = [...prev.auto];
+                        for (const entry of supabaseGlossary.auto) {
+                            if (!mergedAuto.find(e => e.word === entry.word)) {
+                                mergedAuto.push(entry);
+                            }
+                        }
+                        return { manual: mergedManual, auto: mergedAuto };
+                    });
+                    console.log('📚 Glossary merged from Supabase');
+                }
+            } catch {
+                console.warn('Could not load glossary from Supabase');
+            }
+        })();
     }, []);
 
     // Auto-load all dictionaries on mount (async runtime fetch)
@@ -73,7 +107,7 @@ export function GlossaryProvider({ children }: { children: ReactNode }) {
             });
     }, [mounted, autoLoadComplete]);
 
-    // Save to localStorage on every change (after mount)
+    // Save to localStorage on every change (after mount) + debounced Supabase sync
     useEffect(() => {
         if (!mounted) return;
         try {
@@ -81,6 +115,21 @@ export function GlossaryProvider({ children }: { children: ReactNode }) {
         } catch {
             // ignore storage errors
         }
+
+        // Debounced sync to Supabase
+        if (glossarySyncTimer.current) clearTimeout(glossarySyncTimer.current);
+        glossarySyncTimer.current = setTimeout(async () => {
+            try {
+                if (glossary.manual.length > 0) {
+                    await syncGlossaryToSupabase(glossary.manual, 'manual');
+                }
+                if (glossary.auto.length > 0) {
+                    await syncGlossaryToSupabase(glossary.auto, 'auto');
+                }
+            } catch {
+                // silent fail
+            }
+        }, 3000); // 3 second debounce for Supabase
     }, [glossary, mounted]);
 
     const addToManualGlossary = useCallback((word: string, segments: string[]) => {
@@ -171,6 +220,9 @@ export function GlossaryProvider({ children }: { children: ReactNode }) {
                 ],
             };
         });
+
+        // Track segment pattern in Supabase (fire-and-forget)
+        upsertSegmentPattern(word, segments).catch(() => { });
     }, []);
 
     // ── Pre-computed word index for O(1) lookups ──

@@ -4,10 +4,20 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 import { Line, Segment, EditorMode, ViewMode, UndoEntry, ProjectData, ProjectMeta } from '../types';
 import { segmentIntoSyllables, splitIntoLines, resegment, isUnderSegmented } from '../lib/sylbreak';
 import { segmentBatchML } from '../lib/segmentApi';
+import {
+    createProject,
+    updateProject,
+    saveDocumentLines,
+    loadDocumentLines,
+    getLastActiveProject,
+    SyncStatus,
+    DBProject,
+} from '../lib/supabaseService';
 
 export type SegmentationMethod = 'local' | 'ml';
 
 const STORAGE_KEY = 'myan-seg-editor';
+const PROJECT_ID_KEY = 'myan-seg-project-id';
 const MAX_UNDO_HISTORY = 50;
 
 interface EditorContextType {
@@ -23,6 +33,10 @@ interface EditorContextType {
     segmentationMethod: SegmentationMethod;
     isMLSegmenting: boolean;
     mlError: string | null;
+    // Supabase
+    projectId: string | null;
+    syncStatus: SyncStatus;
+    projectName: string;
 
     // Actions
     importText: (text: string) => void;
@@ -46,7 +60,9 @@ interface EditorContextType {
     clearAll: () => void;
     markLineReviewed: (lineIndex: number) => void;
     setLines: (lines: Line[]) => void;
-    getSegmentedWord: () => string; // Get the word at current cursor for dictionary lookup
+    getSegmentedWord: () => string;
+    loadProjectFromSupabase: (id: string) => Promise<void>;
+    setProjectName: (name: string) => void;
 }
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
@@ -64,20 +80,26 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const [isMLSegmenting, setIsMLSegmenting] = useState(false);
     const [mlError, setMlError] = useState<string | null>(null);
 
+    // Supabase state
+    const [projectId, setProjectId] = useState<string | null>(null);
+    const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
+    const [projectName, setProjectName] = useState('Untitled Project');
+    const supabaseSyncTimer = useRef<NodeJS.Timeout | null>(null);
+
     // Undo/Redo stacks
     const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
     const [redoStack, setRedoStack] = useState<UndoEntry[]>([]);
 
     const segmentIdCounter = useRef(0);
 
-    // Load from localStorage on mount (supports both legacy full format and compact format)
+    // Load from localStorage on mount, then try Supabase
     useEffect(() => {
         setMounted(true);
+        // 1. Restore from localStorage (instant)
         try {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
                 const data = JSON.parse(stored);
-                // Compact format (new)
                 if (data.compactLines && data.compactLines.length > 0) {
                     const restoredLines: Line[] = data.compactLines.map((cl: { id: number; originalText: string; status: string; segTexts: string[] }) => ({
                         id: cl.id,
@@ -91,7 +113,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                     }));
                     setLinesState(restoredLines);
                 } else if (data.lines && data.lines.length > 0) {
-                    // Legacy full format
                     setLinesState(data.lines);
                 }
                 setCurrentLineIndex(data.currentLineIndex || 0);
@@ -100,9 +121,44 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 setShowConfidenceColors(data.showConfidenceColors ?? true);
                 segmentIdCounter.current = data.segmentIdCounter || 0;
             }
+            // Restore project ID
+            const storedProjectId = localStorage.getItem(PROJECT_ID_KEY);
+            if (storedProjectId) {
+                setProjectId(storedProjectId);
+            }
         } catch {
             // ignore parse errors
         }
+
+        // 2. Try to load from Supabase in background
+        (async () => {
+            try {
+                const storedProjectId = localStorage.getItem(PROJECT_ID_KEY);
+                if (storedProjectId) {
+                    const dbLines = await loadDocumentLines(storedProjectId);
+                    if (dbLines && dbLines.length > 0) {
+                        setLinesState(dbLines);
+                        setSyncStatus('synced');
+                        console.log('☁️ Loaded from Supabase');
+                    }
+                } else {
+                    // Check for last active project
+                    const lastProject = await getLastActiveProject();
+                    if (lastProject) {
+                        setProjectId(lastProject.id);
+                        setProjectName(lastProject.name);
+                        localStorage.setItem(PROJECT_ID_KEY, lastProject.id);
+                        const dbLines = await loadDocumentLines(lastProject.id);
+                        if (dbLines && dbLines.length > 0) {
+                            setLinesState(dbLines);
+                            setSyncStatus('synced');
+                        }
+                    }
+                }
+            } catch {
+                setSyncStatus('offline');
+            }
+        })();
     }, []);
 
     // Auto-save to localStorage on change (debounced, compact format)
@@ -190,7 +246,29 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         setHasUnsavedChanges(true);
         setUndoStack([]);
         setRedoStack([]);
-    }, [generateSegmentId, addWarnings]);
+
+        // Create project in Supabase
+        (async () => {
+            try {
+                setSyncStatus('syncing');
+                const project = await createProject(
+                    projectName || 'Untitled Project',
+                    newLines.length,
+                    segmentationMethod
+                );
+                if (project) {
+                    setProjectId(project.id);
+                    localStorage.setItem(PROJECT_ID_KEY, project.id);
+                    await saveDocumentLines(project.id, newLines);
+                    setSyncStatus('synced');
+                } else {
+                    setSyncStatus('offline');
+                }
+            } catch {
+                setSyncStatus('offline');
+            }
+        })();
+    }, [generateSegmentId, addWarnings, projectName, segmentationMethod]);
 
     const importTextWithML = useCallback(async (text: string) => {
         const textLines = splitIntoLines(text);
@@ -224,16 +302,35 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             setHasUnsavedChanges(true);
             setUndoStack([]);
             setRedoStack([]);
+
+            // Create project in Supabase
+            try {
+                setSyncStatus('syncing');
+                const project = await createProject(
+                    projectName || 'Untitled Project',
+                    newLines.length,
+                    'ml'
+                );
+                if (project) {
+                    setProjectId(project.id);
+                    localStorage.setItem(PROJECT_ID_KEY, project.id);
+                    await saveDocumentLines(project.id, newLines);
+                    setSyncStatus('synced');
+                } else {
+                    setSyncStatus('offline');
+                }
+            } catch {
+                setSyncStatus('offline');
+            }
         } catch (error) {
             const message = error instanceof Error ? error.message : 'ML segmentation failed';
             setMlError(message);
             console.error('ML Segmentation failed, falling back to local:', error);
-            // Fallback to local segmentation
             importText(text);
         } finally {
             setIsMLSegmenting(false);
         }
-    }, [generateSegmentId, addWarnings, importText]);
+    }, [generateSegmentId, addWarnings, importText, projectName]);
 
     const splitSegment = useCallback((lineIndex: number, segmentIndex: number, position: number) => {
         pushUndo(`Split segment on line ${lineIndex + 1}`);
@@ -429,6 +526,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
     const save = useCallback(() => {
         setHasUnsavedChanges(false);
+        // 1. Save to localStorage (instant)
         if (typeof window !== 'undefined') {
             try {
                 const compactLines = lines.map(line => ({
@@ -449,7 +547,25 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 console.warn('localStorage quota exceeded, save skipped — use Export instead');
             }
         }
-    }, [lines, currentLineIndex, currentSegmentIndex, viewMode, showConfidenceColors]);
+
+        // 2. Sync to Supabase (debounced)
+        if (supabaseSyncTimer.current) clearTimeout(supabaseSyncTimer.current);
+        supabaseSyncTimer.current = setTimeout(async () => {
+            if (!projectId) return;
+            try {
+                setSyncStatus('syncing');
+                const reviewedCount = lines.filter(l => l.status === 'reviewed').length;
+                await updateProject(projectId, {
+                    reviewed_lines: reviewedCount,
+                    total_lines: lines.length,
+                });
+                await saveDocumentLines(projectId, lines);
+                setSyncStatus('synced');
+            } catch {
+                setSyncStatus('error');
+            }
+        }, 1000);
+    }, [lines, currentLineIndex, currentSegmentIndex, viewMode, showConfidenceColors, projectId]);
 
     const exportData = useCallback((): ProjectData => {
         const projectMeta: ProjectMeta = {
@@ -472,7 +588,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         setHasUnsavedChanges(false);
         setUndoStack([]);
         setRedoStack([]);
+        setProjectId(null);
+        setSyncStatus('idle');
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(PROJECT_ID_KEY);
     }, []);
 
     const markLineReviewed = useCallback((lineIndex: number) => {
@@ -505,6 +624,29 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         return seg?.text || '';
     }, [lines, currentLineIndex, currentSegmentIndex]);
 
+    // Load a project from Supabase by ID
+    const loadProjectFromSupabase = useCallback(async (id: string) => {
+        try {
+            setSyncStatus('syncing');
+            const dbLines = await loadDocumentLines(id);
+            if (dbLines && dbLines.length > 0) {
+                setLinesState(dbLines);
+                setProjectId(id);
+                localStorage.setItem(PROJECT_ID_KEY, id);
+                setCurrentLineIndex(0);
+                setCurrentSegmentIndex(0);
+                setHasUnsavedChanges(false);
+                setUndoStack([]);
+                setRedoStack([]);
+                setSyncStatus('synced');
+            } else {
+                setSyncStatus('error');
+            }
+        } catch {
+            setSyncStatus('error');
+        }
+    }, []);
+
     return (
         <EditorContext.Provider
             value={{
@@ -520,6 +662,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 segmentationMethod,
                 isMLSegmenting,
                 mlError,
+                projectId,
+                syncStatus,
+                projectName,
                 importText,
                 importTextWithML,
                 splitSegment,
@@ -542,6 +687,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 markLineReviewed,
                 setLines,
                 getSegmentedWord,
+                loadProjectFromSupabase,
+                setProjectName,
             }}
         >
             {children}

@@ -18,6 +18,7 @@ export default function Toolbar() {
         viewMode, setViewMode, toggleConfidenceColors, showConfidenceColors,
         canUndo, canRedo, undo, redo, setLines, clearAll,
         segmentationMethod, isMLSegmenting, mlError,
+        syncStatus, projectName,
     } = useEditor();
     const { t, language, setLanguage } = useI18n();
     const { scanForConflicts } = useConflicts();
