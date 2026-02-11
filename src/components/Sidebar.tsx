@@ -124,8 +124,8 @@ export default function Sidebar() {
                         <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> {t('noConflicts')}
                     </div>
                 ) : (
-                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                        {unresolvedConflicts.slice(0, 5).map(conflict => (
+                    <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                        {unresolvedConflicts.map(conflict => (
                             <button
                                 key={conflict.id}
                                 onClick={() => setActiveConflict(conflict)}
@@ -142,11 +142,6 @@ export default function Sidebar() {
                                 </div>
                             </button>
                         ))}
-                        {unresolvedConflicts.length > 5 && (
-                            <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center py-1">
-                                +{unresolvedConflicts.length - 5} more...
-                            </p>
-                        )}
                     </div>
                 )}
             </div>
